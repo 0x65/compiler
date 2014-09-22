@@ -1,13 +1,17 @@
-module Trees (
+module Structures (
       ProgramTree (..)
+    , CodeGenBlock (..)
     , CodeGenTree (..)
 ) where
 
 data ProgramTree = PInt Int -- 30 bit int
                  | PBool Bool
                  | PNil
-                 | PCall String [ProgramTree] -- temp, until let replaces this
+                 | PLet [(String, ProgramTree)] ProgramTree
+                 | PVar String
                  | PIf ProgramTree ProgramTree ProgramTree
+
+data CodeGenBlock = CodeGenBlock String [String] CodeGenTree
 
 data CodeGenTree = CGImmediate String
                  | CGCall String [CodeGenTree]
