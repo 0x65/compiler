@@ -46,12 +46,6 @@ emitFunctionDecl name params =
     let params' = map ("value_t " ++) params
     in  emit $ "value_t " ++ name ++ "(" ++ intercalate "," params' ++ ");"
 
-emitPrelude :: Generation ()
-emitPrelude = do
-    emit "typedef unsigned int value_t;"
-    emit "#define BOOL_F 0x2F"
-    emit "value_t add(value_t a, value_t b);"
-
 processCall :: String -> [CodeGenTree] -> Generation String
 processCall name arguments = do
     prefix <- liftM (\i -> "op" ++ show i) uuid
@@ -92,7 +86,7 @@ generateBlock (CodeGenBlock name params tree) = do
 
 generate' :: [CodeGenBlock] -> Generation ()
 generate' blocks = do
-    emitPrelude
+    emit "#include \"runtime.h\""
     mapM_ (\(CodeGenBlock n p _) -> emitFunctionDecl n p) blocks
     mapM_ generateBlock blocks
 
