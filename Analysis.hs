@@ -11,7 +11,6 @@ import Structures (ProgramTree (..), CodeGenTree (..), CodeGenBlock (..))
 
 -- later: make some config generator that gens .h and .hs file
 fixNumShift = 0x2
-fixNumMask  = 0x3
 boolFalse   = 0x2F
 boolTrue    = 0x6F
 nil         = 0x3F
@@ -52,6 +51,7 @@ process (PInt i)        = return $ CGImmediate (show (i `shift` fixNumShift))
 process (PBool b)       = return $ CGImmediate (show (if b then boolTrue else boolFalse))
 process PNil            = return $ CGImmediate (show nil)
 process (PVar s)        = return $ CGImmediate s
+process (PCall s es)    = liftM (CGCall s) (mapM process es) -- temporary?
 process (PLet xs e)     = processLet xs e
 process (PIf c e1 e2)   = processIf c e1 e2
 

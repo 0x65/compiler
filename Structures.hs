@@ -4,12 +4,13 @@ module Structures (
     , CodeGenTree (..)
 ) where
 
-data ProgramTree = PInt Int -- 30 bit int
+data ProgramTree = PInt Int
                  | PBool Bool
                  | PNil
                  | PLet [(String, ProgramTree)] ProgramTree
                  | PVar String
                  | PIf ProgramTree ProgramTree ProgramTree
+                 | PCall String [ProgramTree] -- temporary?
 
 data CodeGenBlock = CodeGenBlock String [String] CodeGenTree
 
