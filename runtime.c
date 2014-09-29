@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -6,26 +7,63 @@
 
 value_t ENTRY_POINT();
 
+static void* allocate_bytes(size_t);
 static void show(value_t, FILE*);
 static void fatal_error(char*);
 static void fatal_error_value(char*, value_t);
 
+value_t make_closure(value_t (*func)(), int arity) {
+    closure_t* closure = allocate_bytes(sizeof(closure_t));
+    closure->func = func;
+    closure->arity = arity;
+    return CLOSURE_TO_VALUE(closure);
+}
+
+// TODO: rewrite with macros
+value_t apply_closure(value_t a, ...) {
+    if (!IS_CLOSURE(a)) fatal_error_value("Can't apply `apply_closure` to non-closure value:", a);
+
+    closure_t closure = VALUE_TO_CLOSURE(a);
+    value_t result;
+
+    va_list var_args;
+    va_start(var_args, a);
+
+    value_t op1, op2;
+
+    switch (closure.arity) {
+        case 0:
+            result = closure.func();
+            break;
+        case 1:
+            op1 = va_arg(var_args, value_t);
+            result = closure.func(op1);
+            break;
+        case 2:
+            op1 = va_arg(var_args, value_t);
+            op2 = va_arg(var_args, value_t);
+            result = closure.func(op1, op2);
+            break;
+        default:
+            fatal_error("Can't apply that many arguments to a function");
+            result = 0;
+    }
+
+    va_end(var_args);
+    return result;
+}
+
+// TODO: rewrite funcs as closures
 value_t add(value_t a, value_t b) {
     if (!IS_FIXNUM(a)) fatal_error_value("Can't apply `add` to non-numeric value:", a);
     if (!IS_FIXNUM(b)) fatal_error_value("Can't apply `add` to non-numeric value:", b);
-    return FIXNUM_TO_VALUE(VALUE_TO_FIXNUM(a) + VALUE_TO_FIXNUM(b));
+    return FIXNUM_TO_VALUE((VALUE_TO_FIXNUM(a) + VALUE_TO_FIXNUM(b)));
 }
 
 value_t cons(value_t a, value_t b) {
-    pair_t* pair = malloc(sizeof(pair_t));
-    if (pair == NULL) fatal_error("Out of memory!");
-
-    // TODO: remove this?
-    assert(((value_t)pair & POINTER_MASK) == 0);
-
+    pair_t* pair = allocate_bytes(sizeof(pair_t));
     pair->first = a;
     pair->second = b;
-
     return PAIR_TO_VALUE(pair);
 }
 
@@ -39,6 +77,16 @@ value_t cdr(value_t a) {
     return VALUE_TO_PAIR(a).second;
 }
 
+static void* allocate_bytes(size_t num) {
+    void* mem = malloc(num);
+    if (mem == NULL) fatal_error("Out of memory!");
+
+    // TODO: remove this?
+    assert(((value_t)mem & POINTER_MASK) == 0);
+
+    return mem;
+}
+
 static void show(value_t p, FILE* stream) {
     if (IS_FIXNUM(p)) {
         fprintf(stream, "%ld", VALUE_TO_FIXNUM(p));
@@ -49,6 +97,8 @@ static void show(value_t p, FILE* stream) {
         fprintf(stream, " ");
         show(pair.second, stream);
         fprintf(stream, ")");
+    } else if (IS_CLOSURE(p)) {
+        fprintf(stream, "#<closure 0x%08lx>", p);
     } else if (IS_IMMEDIATE(p)) {
         if (p == BOOL_F) {
             fprintf(stream, "#f");

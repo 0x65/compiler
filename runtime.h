@@ -11,21 +11,25 @@
 
 #define ENTRY_POINT     _entry_point
 
-#define IS_FIXNUM(x)    ((x & FIXNUM_MASK) == FIXNUM)
-#define IS_PAIR(x)      ((x & POINTER_MASK) == PAIR)
-#define IS_IMMEDIATE(x) ((x & POINTER_MASK) == IMMEDIATE)
+#define IS_FIXNUM(x)        ((x & FIXNUM_MASK) == FIXNUM)
+#define IS_PAIR(x)          ((x & POINTER_MASK) == PAIR)
+#define IS_CLOSURE(x)       ((x & POINTER_MASK) == CLOSURE)
+#define IS_IMMEDIATE(x)     ((x & POINTER_MASK) == IMMEDIATE)
 
 #define VALUE_TO_FIXNUM(x)  (x >> FIXNUM_SHIFT)
 #define VALUE_TO_PAIR(x)    (*((pair_t*)(x & ~POINTER_MASK)))
+#define VALUE_TO_CLOSURE(x) (*((closure_t*)(x & ~POINTER_MASK)))
 
 #define FIXNUM_TO_VALUE(x)  (x << FIXNUM_SHIFT)
 #define PAIR_TO_VALUE(x)    ((value_t)x | PAIR)
+#define CLOSURE_TO_VALUE(x) ((value_t)x | CLOSURE)
 
 typedef uintptr_t value_t;
 
 typedef enum {
     FIXNUM      = 0,
     PAIR        = 1,
+    CLOSURE     = 6,
     IMMEDIATE   = 7
 } tag_t;
 
@@ -34,7 +38,15 @@ typedef struct {
     value_t second;
 } pair_t;
 
+typedef struct {
+    value_t (*func)();
+    int arity;
+} closure_t;
+
 value_t add(value_t, value_t);
 value_t cons(value_t, value_t);
 value_t car(value_t);
 value_t cdr(value_t);
+
+value_t make_closure(value_t (*func)(), int arity);
+value_t apply_closure(value_t, ...);

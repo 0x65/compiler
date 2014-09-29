@@ -46,14 +46,22 @@ processIf condition consequent alternative = do
     alternativeTree <- process alternative
     return $ CGIf conditionTree consequentTree alternativeTree
 
+processLambda :: [String] -> ProgramTree -> Analysis CodeGenTree
+processLambda vars expr = do
+    name <- liftM (\i -> "lambda" ++ show i) uuid
+    expr' <- process expr
+    tell [CodeGenBlock name vars expr']
+    return $ CGLambda name (length vars)
+
 process :: ProgramTree -> Analysis CodeGenTree
 process (PInt i)        = return $ CGImmediate (show (i `shift` fixNumShift))
 process (PBool b)       = return $ CGImmediate (show (if b then boolTrue else boolFalse))
 process PNil            = return $ CGImmediate (show nil)
 process (PVar s)        = return $ CGImmediate s
-process (PCall s es)    = liftM (CGCall s) (mapM process es) -- temporary?
 process (PLet xs e)     = processLet xs e
 process (PIf c e1 e2)   = processIf c e1 e2
+process (PLambda vs e)  = processLambda vs e
+process (PApply f es)   = liftM (CGCall "apply_closure") (mapM process (f:es))
 
 analyze :: ProgramTree -> [CodeGenBlock]
 analyze tree =

@@ -50,7 +50,7 @@ processCall :: String -> [CodeGenTree] -> Generation String
 processCall name arguments = do
     prefix <- liftM (\i -> "op" ++ show i) uuid
     let varNames        = map ((prefix ++) . show) [1 .. (length arguments)]
-        call [] _       = return $ name ++ "(" ++ intercalate "," varNames ++ ");"
+        call [] _       = return $ name ++ "(" ++ intercalate "," varNames ++ ")"
         call (e:es) n   = do
             value <- process e
             emitDeclAssign (prefix ++ show n) value
@@ -75,6 +75,7 @@ process :: CodeGenTree -> Generation String
 process (CGImmediate s) = return s
 process (CGCall n es)   = processCall n es
 process (CGIf c e1 e2)  = processCond c e1 e2
+process (CGLambda n a)  = return $ "make_closure(" ++ n ++ ", " ++ show a ++ ")"
 
 generateBlock :: CodeGenBlock -> Generation ()
 generateBlock (CodeGenBlock name params tree) = do
