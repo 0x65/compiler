@@ -3,10 +3,15 @@
 
 #include "runtime.h"
 
-value_t add;
-value_t cons;
-value_t car;
-value_t cdr;
+#define PRIMITIVES_LIST \
+    X(add)  \
+    X(cons) \
+    X(car)  \
+    X(cdr)
+
+#define X(name) value_t name;
+PRIMITIVES_LIST
+#undef X
 
 void _initialize_primitives();
 #endif

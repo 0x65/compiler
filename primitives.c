@@ -35,8 +35,7 @@ static value_t _cdr(value_t a) {
 MAKE_CLOSURE(_cdr, 1);
 
 void _initialize_primitives() {
-    add = CLOSURE_TO_VALUE(&_add_closure);
-    cons = CLOSURE_TO_VALUE(&_cons_closure);
-    car = CLOSURE_TO_VALUE(&_car_closure);
-    cdr = CLOSURE_TO_VALUE(&_cdr_closure);
+    #define X(name) name = CLOSURE_TO_VALUE(&_##name##_closure);
+    PRIMITIVES_LIST
+    #undef X
 }
