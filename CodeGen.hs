@@ -75,7 +75,7 @@ process :: CodeGenTree -> Generation String
 process (CGImmediate s) = return s
 process (CGCall n es)   = processCall n es
 process (CGIf c e1 e2)  = processCond c e1 e2
-process (CGLambda n a)  = return $ "make_closure(" ++ n ++ ", " ++ show a ++ ")"
+process (CGLambda n a)  = return $ "_make_closure(" ++ n ++ ", " ++ show a ++ ")"
 
 generateBlock :: CodeGenBlock -> Generation ()
 generateBlock (CodeGenBlock name params tree) = do
@@ -88,6 +88,7 @@ generateBlock (CodeGenBlock name params tree) = do
 generate' :: [CodeGenBlock] -> Generation ()
 generate' blocks = do
     emit "#include \"runtime.h\""
+    emit "#include \"primitives.h\""
     mapM_ (\(CodeGenBlock n p _) -> emitFunctionDecl n p) blocks
     mapM_ generateBlock blocks
 

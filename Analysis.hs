@@ -61,7 +61,7 @@ process (PVar s)        = return $ CGImmediate s
 process (PLet xs e)     = processLet xs e
 process (PIf c e1 e2)   = processIf c e1 e2
 process (PLambda vs e)  = processLambda vs e
-process (PApply f es)   = liftM (CGCall "apply_closure") (mapM process (f:es))
+process (PApply f es)   = liftM (CGCall "_apply_closure") (mapM process (f:es))
 
 analyze :: ProgramTree -> [CodeGenBlock]
 analyze tree =

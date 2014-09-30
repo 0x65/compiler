@@ -1,4 +1,8 @@
+#ifndef RUNTIME_H
+#define RUNTIME_H
+
 #include <stdint.h>
+#include <stdio.h>
 
 #define FIXNUM_SHIFT    0x2
 
@@ -24,6 +28,10 @@
 #define PAIR_TO_VALUE(x)    ((value_t)x | PAIR)
 #define CLOSURE_TO_VALUE(x) ((value_t)x | CLOSURE)
 
+#define ASSERT_FIXNUM(x)    if (!IS_FIXNUM(x)) _fatal_error_value("Can't apply function to non-numeric value:", x);
+#define ASSERT_PAIR(x)      if (!IS_PAIR(x)) _fatal_error_value("Can't apply function to non-pair value:", x);
+#define ASSERT_CLOSURE(x)   if (!IS_CLOSURE(x)) _fatal_error_value("Can't apply function to non-closure value:", x);
+
 typedef uintptr_t value_t;
 
 typedef enum {
@@ -43,10 +51,10 @@ typedef struct {
     int arity;
 } closure_t;
 
-value_t add(value_t, value_t);
-value_t cons(value_t, value_t);
-value_t car(value_t);
-value_t cdr(value_t);
-
-value_t make_closure(value_t (*func)(), int arity);
-value_t apply_closure(value_t, ...);
+void* _allocate_bytes(size_t);
+void _show(value_t, FILE*);
+void _fatal_error(char*);
+void _fatal_error_value(char*, value_t);
+value_t _make_closure(value_t (*func)(), int arity);
+value_t _apply_closure(value_t, ...);
+#endif

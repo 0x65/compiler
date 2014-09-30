@@ -11,7 +11,7 @@ main = do
 
     let cc = (PIf (PBool False) c (PVar "x"))
     let aa = (PLambda ["x"] cc)
-    let bb = (PApply aa [PVar "second"])
+    let bb = (PApply aa [PVar "first"])
 
     let d = (PLet [("first", (PInt 30)), ("second", c)] bb)
 
