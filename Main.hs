@@ -17,9 +17,9 @@ main = do
     let test = (PLet [("first", (PApply (PVar "car") [PVar "xs"]))]
                         (PIf (PApply (PVar "is_nil") [PVar "first"])
                              (PNil)
-                             (PApply (PVar "map") [PVar "f", cons (PNil, PNil)])
+                             --(PApply (PVar "map") [PVar "f", cons (PNil, PNil)])
                              --(PApply (PVar "f") [PVar "first"])
-                             --(cons (PApply (PVar "f") [PVar "first"], (PApply (PVar "map") [PApply (PVar "cdr") [PVar "xs"]])))
+                             (cons (PApply (PVar "f") [PVar "first"], (PApply (PVar "map") [PApply (PVar "cdr") [PVar "xs"]])))
                              --(PApply (PVar "cdr") [PVar "xs"])
                         )
                     )
@@ -27,8 +27,8 @@ main = do
 
     print $ freeVars test ["xs"]
 
-    --let prog = PLet [("map", map)] (PApply (PVar "map") [addOne, theList])
-    let prog = PApply (PLambda "map" ["x"] (PLet [("y", PApply addOne [PVar "x"])] (PVar "y"))) [(PInt 1)]
+    let prog = PLet [("map", map)] (PApply (PVar "map") [addOne, theList])
+    --let prog = PApply (PLambda "map" ["x"] (PLet [("y", PApply addOne [PVar "x"])] (PVar "y"))) [(PInt 1)]
 
     let v1 = analyze prog
     generate v1 "test.c"

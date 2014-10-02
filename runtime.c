@@ -45,9 +45,9 @@ value_t _apply_closure(value_t a, ...) {
     #define OP_3        OP_2 , op[2]
     #define OP_4        OP_3 , op[3]
     #define OP_5        OP_4 , op[4]
-    #define OP_6        OP_5 , op[6]
-    #define OP_7        OP_6 , op[7]
-    #define OP_8        OP_7 , op[8]
+    #define OP_6        OP_5 , op[5]
+    #define OP_7        OP_6 , op[6]
+    #define OP_8        OP_7 , op[7]
     #define OP(n)       OP_##n
     #define CASE(n)     case n: result = closure.func( OP(n) ); break;
 
