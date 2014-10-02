@@ -37,7 +37,7 @@ processLet :: [(String, ProgramTree)] -> ProgramTree -> Analysis CodeGenTree
 processLet locals expr = do
     name <- liftM (\i -> "let" ++ show i) uuid 
     expr' <- process expr
-    locals' <- mapM process (map snd locals)
+    locals' <- mapM (process . snd) locals
     return $ CGBlock name (zip (map fst locals) locals') expr'
 
 processIf :: ProgramTree -> ProgramTree -> ProgramTree -> Analysis CodeGenTree
