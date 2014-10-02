@@ -52,7 +52,7 @@ processLambda lname vars expr = do
     let free = freeVars expr (lname:vars)
     name <- liftM (\i -> "lambda" ++ show i) uuid
     expr' <- process expr
-    tell [CodeGenBlock name (vars ++ free) expr']
+    tell [CodeGenBlock name (vars ++ free ++ [lname]) expr']
     return $ CGLambda name (length vars) free
 
 -- TODO: fix this nubbing

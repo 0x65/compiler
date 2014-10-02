@@ -56,6 +56,6 @@ void* _allocate_bytes(size_t);
 void _show(value_t, FILE*);
 void _fatal_error(char*);
 void _fatal_error_value(char*, value_t);
-value_t _make_closure(value_t (*func)(), int arity, value_t* env);
+value_t _make_closure(value_t (*func)(), int arity, int num_free, ...);
 value_t _apply_closure(value_t, ...);
 #endif

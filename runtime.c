@@ -8,12 +8,30 @@
 
 value_t ENTRY_POINT();
 
-value_t _make_closure(value_t (*func)(), int arity, value_t* env) {
+value_t _make_closure(value_t (*func)(), int arity, int num_free, ...) {
     closure_t* closure = _allocate_bytes(sizeof(closure_t));
+    value_t closure_val = CLOSURE_TO_VALUE(closure);
+
     closure->func = func;
     closure->arity = arity;
+
+    va_list var_args;
+    va_start(var_args, num_free);
+
+    size_t i = 0;
+    value_t* env = malloc(sizeof(value_t) * (num_free + 2));
+    for (; i < num_free; i++) {
+        env[i] = va_arg(var_args, value_t);
+    }
+
+    va_end(var_args);
+
+    env[i] = closure_val;
+    env[i+1] = 0;
+
     closure->env = env;
-    return CLOSURE_TO_VALUE(closure);
+
+    return closure_val;
 }
 
 value_t _apply_closure(value_t a, ...) {
@@ -27,13 +45,13 @@ value_t _apply_closure(value_t a, ...) {
     value_t op[32];
     size_t i = 0, j = 0;
 
-    for (i = 0; i < closure.arity; i++) {
+    for (; i < closure.arity; i++) {
         op[i] = va_arg(var_args, value_t);
     }
 
     va_end(var_args);
 
-    for (j = 0; closure.env != NULL && closure.env[j] != 0; j++, i++) {
+    for (; closure.env != NULL && closure.env[j] != 0; j++, i++) {
         op[i] = closure.env[j];
     }
 
