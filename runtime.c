@@ -8,10 +8,11 @@
 
 value_t ENTRY_POINT();
 
-value_t _make_closure(value_t (*func)(), int arity) {
+value_t _make_closure(value_t (*func)(), int arity, value_t* env) {
     closure_t* closure = _allocate_bytes(sizeof(closure_t));
     closure->func = func;
     closure->arity = arity;
+    closure->env = env;
     return CLOSURE_TO_VALUE(closure);
 }
 
@@ -24,25 +25,34 @@ value_t _apply_closure(value_t a, ...) {
     va_start(var_args, a);
 
     value_t op[32];
-    for (size_t i = 0; i < closure.arity; i++) {
+    size_t i = 0, j = 0;
+
+    for (i = 0; i < closure.arity; i++) {
         op[i] = va_arg(var_args, value_t);
     }
 
     va_end(var_args);
+
+    for (j = 0; closure.env != NULL && closure.env[j] != 0; j++, i++) {
+        op[i] = closure.env[j];
+    }
+
     value_t result;
 
     #define OP_0
     #define OP_1        op[0]
     #define OP_2        OP_1 , op[1]
     #define OP_3        OP_2 , op[2]
+    #define OP_4        OP_3 , op[3]
     #define OP(n)       OP_##n
     #define CASE(n)     case n: result = closure.func( OP(n) ); break;
 
-    switch (closure.arity) {
+    switch (closure.arity + j) {
         CASE(0);
         CASE(1);
         CASE(2);
         CASE(3);
+        CASE(4);
         default:
             _fatal_error("Can't apply that many arguments to a function");
             result = 0;

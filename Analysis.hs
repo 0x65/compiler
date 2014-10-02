@@ -48,10 +48,19 @@ processIf condition consequent alternative = do
 
 processLambda :: [String] -> ProgramTree -> Analysis CodeGenTree
 processLambda vars expr = do
+    let free = freeVars expr vars
     name <- liftM (\i -> "lambda" ++ show i) uuid
     expr' <- process expr
-    tell [CodeGenBlock name vars expr']
-    return $ CGLambda name (length vars)
+    tell [CodeGenBlock name (vars ++ free) expr']
+    return $ CGLambda name (length vars) free
+
+freeVars :: ProgramTree -> [String] -> [String]
+freeVars (PLet xs e) vs     = freeVars e (vs ++ map fst xs) ++ concatMap ((`freeVars` vs) . snd) xs
+freeVars (PIf c e1 e2) vs   = freeVars c vs ++ freeVars e1 vs ++ freeVars e2 vs
+freeVars (PLambda xs e) vs  = freeVars e (xs ++ vs)
+freeVars (PApply f es) vs   = freeVars f vs ++ concatMap (`freeVars` vs) es
+freeVars (PVar s) vs        = if s `elem` vs then [] else [s]
+freeVars _ _                = []
 
 process :: ProgramTree -> Analysis CodeGenTree
 process (PInt i)        = return $ CGImmediate (show (i `shift` fixNumShift))

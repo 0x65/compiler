@@ -18,4 +18,4 @@ data CodeGenBlock = CodeGenBlock String [String] CodeGenTree
 data CodeGenTree = CGImmediate String
                  | CGCall String [CodeGenTree]
                  | CGIf CodeGenTree CodeGenTree CodeGenTree
-                 | CGLambda String Int
+                 | CGLambda String Int [String]

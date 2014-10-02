@@ -1,7 +1,7 @@
 #include "runtime.h"
 #include "primitives.h"
 
-#define MAKE_CLOSURE(f, a)     static const closure_t f##_closure = { .func = f , .arity = a };
+#define MAKE_CLOSURE(f, a)     static const closure_t f##_closure = { .func = f , .arity = a, .env = NULL }
 
 static value_t _add(value_t a, value_t b) {
     ASSERT_FIXNUM(a);

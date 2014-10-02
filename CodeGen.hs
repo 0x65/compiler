@@ -72,10 +72,16 @@ processCond condition consequent alternative = do
     return name
 
 process :: CodeGenTree -> Generation String
-process (CGImmediate s) = return s
-process (CGCall n es)   = processCall n es
-process (CGIf c e1 e2)  = processCond c e1 e2
-process (CGLambda n a)  = return $ "_make_closure(" ++ n ++ ", " ++ show a ++ ")"
+process (CGImmediate s)     = return s
+process (CGCall n es)       = processCall n es
+process (CGIf c e1 e2)      = processCond c e1 e2
+process (CGLambda n a fs)   = do -- TODO: move into separate function? put into c code?
+    name <- liftM (\i -> "env" ++ show i) uuid
+    -- TODO: check if 0 args, then just pass null
+    emit $ "value_t* " ++ name ++ " = malloc(sizeof(value_t) * " ++ show (length fs + 1) ++ ");"
+    mapM_ (\(s, n) -> emitAssign (name ++ "[" ++ show n ++ "]") s) (zip fs [0..])
+    emitAssign (name ++ "[" ++ show (length fs) ++ "]") "0"
+    return $ "_make_closure(" ++ n ++ ", " ++ show a ++ ", " ++ name ++ ")"
 
 generateBlock :: CodeGenBlock -> Generation ()
 generateBlock (CodeGenBlock name params tree) = do
@@ -87,6 +93,7 @@ generateBlock (CodeGenBlock name params tree) = do
 
 generate' :: [CodeGenBlock] -> Generation ()
 generate' blocks = do
+    emit "#include <stdlib.h>"
     emit "#include \"runtime.h\""
     emit "#include \"primitives.h\""
     mapM_ (\(CodeGenBlock n p _) -> emitFunctionDecl n p) blocks

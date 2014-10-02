@@ -7,13 +7,10 @@ main = do
     let a = (PInt 42)
     let b = (PInt 10)
     let c = (PInt 5)
-    let f = (PIf (PBool False) b c)
 
-    let cc = (PIf (PBool False) c (PVar "x"))
-    let aa = (PLambda ["x"] cc)
-    let bb = (PApply aa [PVar "first"])
+    let f = PLambda ["y"] (PIf (PBool False) (PVar "y") (PVar "x"))
+    let g = PLambda ["y"] (PApply (PVar "add") [PVar "x", PVar "y"])
+    let e = PLet [("x", c)] (PApply g [PInt 10])
 
-    let d = (PLet [("first", (PInt 30)), ("second", c)] bb)
-
-    let v1 = analyze d
+    let v1 = analyze e
     generate v1 "test.c"
