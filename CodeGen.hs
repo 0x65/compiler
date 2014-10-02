@@ -75,6 +75,15 @@ process :: CodeGenTree -> Generation String
 process (CGImmediate s)     = return s
 process (CGCall n es)       = processCall n es
 process (CGIf c e1 e2)      = processCond c e1 e2
+process (CGBlock s xs e)    = do -- TODO: fix ugly ass code
+    emitVariableDecl s
+    emit "{"
+    aa <- mapM (process . snd) xs
+    mapM_ (uncurry emitDeclAssign) (zip (map fst xs) aa)
+    res <- process e
+    emitAssign s res
+    emit "}"
+    return s
 process (CGLambda n a fs)   = do -- TODO: move into separate function? put into c code?
     name <- liftM (\i -> "env" ++ show i) uuid
     -- TODO: check if 0 args, then just pass null

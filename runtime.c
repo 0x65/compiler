@@ -44,6 +44,10 @@ value_t _apply_closure(value_t a, ...) {
     #define OP_2        OP_1 , op[1]
     #define OP_3        OP_2 , op[2]
     #define OP_4        OP_3 , op[3]
+    #define OP_5        OP_4 , op[4]
+    #define OP_6        OP_5 , op[6]
+    #define OP_7        OP_6 , op[7]
+    #define OP_8        OP_7 , op[8]
     #define OP(n)       OP_##n
     #define CASE(n)     case n: result = closure.func( OP(n) ); break;
 
@@ -53,6 +57,10 @@ value_t _apply_closure(value_t a, ...) {
         CASE(2);
         CASE(3);
         CASE(4);
+        CASE(5);
+        CASE(6);
+        CASE(7);
+        CASE(8);
         default:
             _fatal_error("Can't apply that many arguments to a function");
             result = 0;

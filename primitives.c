@@ -34,6 +34,15 @@ static value_t _cdr(value_t a) {
 
 MAKE_CLOSURE(_cdr, 1);
 
+static value_t _is_nil(value_t a) {
+    if (a == NIL)
+        return BOOL_T;
+    else
+        return BOOL_F;
+}
+
+MAKE_CLOSURE(_is_nil, 1);
+
 void _initialize_primitives() {
     #define X(name) name = CLOSURE_TO_VALUE(&_##name##_closure);
     PRIMITIVES_LIST
