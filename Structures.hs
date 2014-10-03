@@ -1,8 +1,13 @@
 module Structures (
-      ProgramTree (..)
+      RawTree (..)
+    , ProgramTree (..)
     , CodeGenBlock (..)
     , CodeGenTree (..)
 ) where
+
+data RawTree = RAtom String
+             | RInt Int
+             | RList [RawTree]
 
 data ProgramTree = PInt Int
                  | PBool Bool
