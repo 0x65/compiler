@@ -3,39 +3,40 @@ module Parser (
 ) where
 
 import Control.Applicative ((<$>))
+import Data.Maybe
+import Prelude hiding (readList)
 import Text.ParserCombinators.Parsec hiding (parse)
 import qualified Text.ParserCombinators.Parsec as P (parse)
 
-import Structures (RawTree(..), ProgramTree(..))
+import Structures
 
 symbol :: Parser Char
-symbol = oneOf "!$%&|*+-/:<=>?@^_~#"
+symbol = oneOf "_"
 
-parseAtom :: Parser RawTree
-parseAtom = do
+readAtom :: Parser RawTree
+readAtom = do
     first <- letter <|> symbol
     rest <- many (letter <|> symbol <|> digit)
     return $ RAtom (first:rest)
 
-parseInt :: Parser RawTree
-parseInt = (RInt . read) <$> many1 digit
+readInt :: Parser RawTree
+readInt = (RInt . read) <$> many1 digit
 
-parseList :: Parser RawTree
-parseList = do
+readList :: Parser RawTree
+readList = do
     char '('
-    x <- sepBy parseExpr (skipMany1 space)
+    x <- sepBy readExpr (skipMany1 space)
     char ')'
     return $ RList x
 
-parseExpr :: Parser RawTree
-parseExpr = parseAtom
-        <|> parseInt
-        <|> parseList
+readExpr :: Parser RawTree
+readExpr = readAtom
+        <|> readInt
+        <|> readList
 
-parse :: String -> ProgramTree
-parse input = case P.parse parseExpr "parser" input of
-    Left e  -> error $ "Parser error: " ++ show e
-    Right t -> transform t
+getName :: RawTree -> String
+getName (RAtom s) = s
+getName _         = error "Invalid argument name"
 
 transformLet :: [RawTree] -> ProgramTree
 transformLet [RList vs, b]  = PLet (map bind vs) (transform b)
@@ -47,16 +48,10 @@ transformIf :: [RawTree] -> ProgramTree
 transformIf [c, e1, e2] = PIf (transform c) (transform e1) (transform e2)
 transformIf _           = error "If must be applied to 3 arguments"
 
--- TODO: put in monad
 transformLambda :: [RawTree] -> ProgramTree
-transformLambda [RList vs, b]           = transformLambda' "FIXME" vs b
-transformLambda [RAtom n, RList vs, b]  = transformLambda' n vs b
+transformLambda [RList vs, b]           = PLambda Nothing (map getName vs) (transform b)
+transformLambda [RAtom n, RList vs, b]  = PLambda (Just n) (map getName vs) (transform b)
 transformLambda _                       = error "Syntax error in defining lambda"
-
-transformLambda' :: String -> [RawTree] -> RawTree -> ProgramTree
-transformLambda' name vars body = PLambda name (map getName vars) (transform body)
-    where getName (RAtom s) = s
-          getName _         = error "Invalid argument name"
 
 transform :: RawTree -> ProgramTree
 transform (RAtom "'()")  = PNil
@@ -64,10 +59,14 @@ transform (RAtom "#f")   = PBool False
 transform (RAtom "#t")   = PBool True
 transform (RAtom s)      = PVar s
 transform (RInt i)       = PInt i
+transform (RList [])     = PNil
 transform (RList (e:es)) = case transform e of
     (PVar "if")     -> transformIf es
     (PVar "let")    -> transformLet es
     (PVar "lambda") -> transformLambda es
     v               -> PApply v (if not (null es) then map transform es else [])
-transform (RList [])     = PNil
 
+parse :: String -> ProgramTree
+parse input = case P.parse readExpr "parser" input of
+    Left e  -> error $ "Parser error: " ++ show e
+    Right t -> transform t

@@ -1,15 +1,14 @@
 module Analysis (
       analyze
-    , freeVars
 ) where
 
-import Control.Monad (liftM, mapM)
-import Control.Monad.State (get, modify, runState, State)
-import Control.Monad.Trans.Writer (runWriterT, tell, WriterT)
-import Data.Bits (shift)
-import Data.List (nub)
+import Control.Monad
+import Control.Monad.Trans.Writer
+import Data.Bits
+import Data.List
+import Data.Maybe
 
-import Structures (ProgramTree (..), CodeGenTree (..), CodeGenBlock (..))
+import Structures
 
 -- later: make some config generator that gens .h and .hs file
 fixNumShift = 0x2
@@ -18,27 +17,13 @@ boolTrue    = 0x6F
 nil         = 0x3F
 entryPoint  = "_entry_point"
 
-data Analyzer = Analyzer {
-    uuidCounter :: Int
-}
-
-newAnalyzer :: Analyzer
-newAnalyzer = Analyzer { uuidCounter = 0 }
-
-type Analysis = WriterT [CodeGenBlock] (State Analyzer)
-
-uuid :: Analysis Int
-uuid = do
-    count <- liftM uuidCounter get
-    modify (\analyzer -> analyzer { uuidCounter = count + 1 })
-    return count
+type Analysis = WriterT [CodeGenBlock] Compilation
 
 processLet :: [(String, ProgramTree)] -> ProgramTree -> Analysis CodeGenTree
 processLet locals expr = do
-    name <- liftM (\i -> "let" ++ show i) uuid 
     expr' <- process expr
     locals' <- mapM (process . snd) locals
-    return $ CGBlock name (zip (map fst locals) locals') expr'
+    return $ CGLet (zip (map fst locals) locals') expr'
 
 processIf :: ProgramTree -> ProgramTree -> ProgramTree -> Analysis CodeGenTree
 processIf condition consequent alternative = do
@@ -47,12 +32,12 @@ processIf condition consequent alternative = do
     alternativeTree <- process alternative
     return $ CGIf conditionTree consequentTree alternativeTree
 
-processLambda :: String -> [String] -> ProgramTree -> Analysis CodeGenTree
+processLambda :: Maybe String -> [String] -> ProgramTree -> Analysis CodeGenTree
 processLambda lname vars expr = do
-    let free = freeVars expr (lname:vars)
-    name <- liftM (\i -> "lambda" ++ show i) uuid
+    name <- uuid "lambda"
     expr' <- process expr
-    tell [CodeGenBlock name (vars ++ free ++ [lname]) expr']
+    let free = freeVars expr (maybeToList lname ++ vars)
+    tell [CodeGenBlock name (vars ++ free ++ [fromMaybe "_self" lname]) expr']
     return $ CGLambda name (length vars) free
 
 -- TODO: fix this nubbing
@@ -74,7 +59,7 @@ process (PIf c e1 e2)     = processIf c e1 e2
 process (PLambda n vs e)  = processLambda n vs e
 process (PApply f es)     = liftM (CGCall "_apply_closure") (mapM process (f:es))
 
-analyze :: ProgramTree -> [CodeGenBlock]
-analyze tree =
-    let ((mainTree, otherBlocks), _) = runState (runWriterT (process tree)) newAnalyzer
-    in  otherBlocks ++ [CodeGenBlock entryPoint [] mainTree]
+analyze :: ProgramTree -> Compilation [CodeGenBlock]
+analyze tree = do
+    (mainTree, otherBlocks) <- runWriterT $ process tree
+    return $ otherBlocks ++ [CodeGenBlock entryPoint [] mainTree]

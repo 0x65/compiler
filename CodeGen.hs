@@ -2,44 +2,21 @@ module CodeGen (
       generate
 ) where
 
-import Control.Monad (liftM)
-import Control.Monad.State (get, modify, runState, State)
-import Data.List (intercalate)
-import Control.Monad.Trans.Writer (runWriterT, tell, WriterT)
+import Control.Monad
+import Control.Monad.State
+import Control.Monad.Trans.Writer
+import Data.List
 
-import Structures (CodeGenBlock (..), CodeGenTree (..))
+import Structures
 
-data Generator = Generator {
-      uuidCounter :: Int
-    , indentLevel :: Int
-}
-
-newGenerator :: Generator
-newGenerator = Generator { uuidCounter = 0, indentLevel = 0 }
-
-type Generation = WriterT [String] (State Generator)
-
-uuid :: Generation Int
-uuid = do
-    count <- liftM uuidCounter get
-    modify (\compiler -> compiler { uuidCounter = count + 1 })
-    return count
-
-incrIndent :: Generation ()
-incrIndent = do
-    indent <- liftM indentLevel get
-    modify (\compiler -> compiler { indentLevel = indent + 1 })
-
-decrIndent :: Generation ()
-decrIndent = do
-    indent <- liftM indentLevel get
-    modify (\compiler -> compiler { indentLevel = indent - 1 })
+type Generation = WriterT [String] Compilation
 
 emit :: String -> Generation ()
 emit s = do
     indent <- liftM indentLevel get
     tell [concat (replicate indent "    ") ++ s]
 
+-- TODO: make into string -> string functions
 emitVariableDecl :: String -> Generation ()
 emitVariableDecl name = emit $ "value_t " ++ name ++ ";"
 
@@ -62,9 +39,9 @@ newLine = emit ""
 
 processCall :: String -> [CodeGenTree] -> Generation String
 processCall name arguments = do
-    prefix <- liftM (\i -> "op" ++ show i) uuid
+    prefix <- uuid "op"
     let varNames        = map ((prefix ++) . show) [1 .. (length arguments)]
-        call [] _       = return $ name ++ "(" ++ intercalate "," varNames ++ ")"
+        call [] _       = return $ name ++ "(" ++ intercalate ", " varNames ++ ")"
         call (e:es) n   = do
             value <- process e
             emitDeclAssign (prefix ++ show n) value
@@ -73,7 +50,7 @@ processCall name arguments = do
 
 processCond :: CodeGenTree -> CodeGenTree -> CodeGenTree -> Generation String
 processCond condition consequent alternative = do
-    name <- liftM (\i -> "if" ++ show i) uuid
+    name <- uuid "if"
     conditionVal <- process condition
     emitVariableDecl name
     emit $ "if ((" ++ conditionVal ++ ") == BOOL_F) {"
@@ -89,24 +66,29 @@ processCond condition consequent alternative = do
     emit "}"
     return name
 
-process :: CodeGenTree -> Generation String
-process (CGImmediate s)     = return s
-process (CGCall n es)       = processCall n es
-process (CGIf c e1 e2)      = processCond c e1 e2
-process (CGBlock s xs e)    = do -- TODO: fix ugly ass code, rename CGBlock?
-    emitVariableDecl s
+processLet :: [(String, CodeGenTree)] -> CodeGenTree -> Generation String
+processLet bindings expr = do
+    name <- uuid "let"
+    emitVariableDecl name
     emit "{"
     incrIndent
-    aa <- mapM (process . snd) xs
-    mapM_ (uncurry emitDeclAssign) (zip (map fst xs) aa)
+    bindings' <- mapM (process . snd) bindings
+    mapM_ (uncurry emitDeclAssign) (zip (map fst bindings) bindings')
     newLine
-    res <- process e
+    result <- process expr
     newLine
-    emitAssign s res
+    emitAssign name result
     decrIndent
     emit "}"
-    return s
-process (CGLambda n a fs)   = return $ "_make_closure(" ++ n ++ ", " ++ show a ++ ", " ++ show (length fs) ++ ", " ++ intercalate ", " fs ++ ")"
+    return name
+
+process :: CodeGenTree -> Generation String
+process (CGImmediate s)   = return s
+process (CGCall n es)     = processCall n es
+process (CGIf c e1 e2)    = processCond c e1 e2
+process (CGLet xs e)      = processLet xs e
+process (CGLambda n a fs) = let args = n : show a : show (length fs) : fs
+                            in  return $ "_make_closure(" ++ intercalate ", " args ++ ")"
 
 generateBlock :: CodeGenBlock -> Generation ()
 generateBlock (CodeGenBlock name params tree) = do
@@ -127,7 +109,7 @@ generate' blocks = do
     mapM_ (\(CodeGenBlock n p _) -> emitFunctionDecl n p) blocks
     mapM_ generateBlock blocks
 
-generate :: [CodeGenBlock] -> String -> IO ()
-generate blocks path = do
-    let ((_, code), _) = runState (runWriterT (generate' blocks)) newGenerator
-    writeFile path (unlines code)
+generate :: [CodeGenBlock] -> Compilation String
+generate blocks = do
+    (_, code) <- runWriterT $ generate' blocks
+    return $ unlines code
